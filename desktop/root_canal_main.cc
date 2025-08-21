@@ -28,6 +28,7 @@
 #include <cstdio>
 
 #include "model/setup/async_manager.h"
+#include "model/setup/shared_thread_pool.h"
 #include "net/posix/posix_async_socket_connector.h"
 #include "net/posix/posix_async_socket_server.h"
 #include "test_environment.h"
@@ -61,6 +62,10 @@ int main(int argc, char** argv) {
   rootcanal::log::SetLogColorEnable(FLAGS_enable_log_color);
 
   INFO("starting rootcanal");
+
+  // Initialize shared thread pool for multi-threaded device processing
+  rootcanal::SharedAsyncThreadPool::Initialize();
+  INFO("SharedAsyncThreadPool initialized");
 
   if (FLAGS_test_port > UINT16_MAX) {
     ERROR("test_port out of range: {}", FLAGS_test_port);
@@ -107,5 +112,10 @@ int main(int argc, char** argv) {
   root_canal.initialize(std::move(barrier));
   barrier_future.wait();
   root_canal.close();
+  
+  // Shutdown shared thread pool
+  rootcanal::SharedAsyncThreadPool::Shutdown();
+  INFO("SharedAsyncThreadPool shutdown complete");
+  
   return 0;
 }

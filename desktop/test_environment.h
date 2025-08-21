@@ -25,6 +25,7 @@
 
 #include "model/controller/controller_properties.h"
 #include "model/setup/async_manager.h"
+#include "model/setup/thread_pool_async_manager.h"
 #include "model/setup/test_channel_transport.h"
 #include "model/setup/test_command_handler.h"
 #include "model/setup/test_model.h"
@@ -43,6 +44,7 @@ using android::net::AsyncDataChannelServer;
 using android::net::ConnectCallback;
 
 using rootcanal::AsyncManager;
+using rootcanal::ThreadPoolAsyncManager;
 using rootcanal::Device;
 using rootcanal::Phy;
 
