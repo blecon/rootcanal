@@ -18,16 +18,19 @@
 
 #include <stdlib.h>  // for size_t
 
+#include <future>    // for async processing
 #include <iomanip>   // for operator<<, setfill
 #include <iostream>  // for basic_ostream
 #include <memory>    // for shared_ptr, make...
 #include <optional>
 #include <type_traits>  // for remove_extent_t
 #include <utility>      // for move
+#include <vector>       // for parallel processing
 
 #include "include/phy.h"  // for Phy, Phy::Type
 #include "log.h"
 #include "phy_layer.h"
+#include "shared_thread_pool.h"  // for parallel device processing
 
 namespace rootcanal {
 
@@ -257,8 +260,33 @@ const std::string& TestModel::List() {
 }
 
 void TestModel::Tick() {
+  // Parallelize device processing using shared thread pool
+  if (phy_devices_.size() <= 1) {
+    // Single device - no need for parallel processing overhead
+    for (auto& [_, device] : phy_devices_) {
+      device->Tick();
+    }
+    return;
+  }
+
+  // Multiple devices - process in parallel using thread pool
+  std::vector<std::future<void>> futures;
+  futures.reserve(phy_devices_.size());
+  
   for (auto& [_, device] : phy_devices_) {
-    device->Tick();
+    auto task_ptr = std::make_shared<std::packaged_task<void()>>([device]() {
+      device->Tick();
+    });
+    futures.push_back(task_ptr->get_future());
+    
+    SharedAsyncThreadPool::Instance().Submit([task_ptr]() {
+      (*task_ptr)();
+    });
+  }
+  
+  // Wait for all devices to complete their tick processing
+  for (auto& future : futures) {
+    future.wait();
   }
 }
 
